@@ -6,13 +6,11 @@ Site is on screen behind you. Picker visible. Read this out loud — it lands at
 
 ## 0:00 – 0:25 · What we did and why
 
-> "Hi — we built a thing called **memory-bench**. It's an **ablation study** of how AI agents should remember things.
+> "Hi — we built a thing called **memory-bench**. It's a **head-to-head benchmark** of five different ways an AI agent can remember things across long conversations.
 >
-> Quick explainer: an ablation study is where you take a system, strip it down to the basics, and then add one feature at a time to see what each feature actually buys you. It's how you find out which parts of a design are load-bearing and which parts are just complexity.
+> We ran all five through the exact same test — a standard academic benchmark called LongMemEval. Five hundred questions about recalling facts from past conversations. Same language model, same questions, same database. **The only thing that changed was how the agent wrote to memory.**
 >
-> We did that for agent memory. We built **five** different ways an AI agent could store and recall information across long conversations, and we ran all five through the exact same test — a benchmark called LongMemEval, 500 questions about remembering things from past conversations. Same language model, same questions, same database. The only thing that changed was how the agent wrote to memory.
->
-> Everything ran on a single TiDB cluster, and that's the part we want to talk about."
+> Everything ran on one TiDB cluster — and that's the part we want to talk about."
 
 *(Picker visible on screen.)*
 
@@ -66,7 +64,7 @@ Site is on screen behind you. Picker visible. Read this out loud — it lands at
 
 > "Everything is open source. You can clone the repo, point it at your own TiDB cluster, and reproduce every number on that chart in about fifteen minutes.
 >
-> The website is **sonzai-tidb.vercel.app** — you can click through the five architectures right there. The repo is **github.com/sonz-ai/memory-bench-tidb**. Same command — `bun run migrate && bun run bench` — and you've got a reproducible agent-memory ablation on your own hardware.
+> The website is **sonzai-tidb.vercel.app** — you can click through the five architectures right there. The repo is **github.com/sonz-ai/memory-bench-tidb**. Same command — `bun run migrate && bun run bench` — and you've got the whole comparison running on your own cluster.
 >
 > One more time: **sonzai-tidb.vercel.app** for the site, **github.com/sonz-ai/memory-bench-tidb** for the code. Thanks."
 
@@ -74,13 +72,12 @@ Site is on screen behind you. Picker visible. Read this out loud — it lands at
 
 ## Quick-reference beats — memorize these, improvise around them
 
-1. **What it is** — an ablation study of five agent-memory approaches on one TiDB cluster.
-2. **What ablation means** — strip to basics, add one feature at a time, measure what each feature buys.
-3. **The five approaches** — raw vector, progressive summary, hierarchical, typed facts, SPO supersede.
-4. **The one query** — vector + keyword + JSON + structured scoring + supersede filter, all in one `ORDER BY`.
-5. **Why TiDB** — if you tried this on Pinecone + Elastic + Postgres, you'd need three systems, app-side merge, and no clean way to handle supersede. On TiDB it's one table, one query, one UPDATE.
-6. **Honest learning** — more sophistication isn't always better. The ablation was only possible because TiDB made it cheap to switch architectures.
-7. **Try it** — `sonzai-tidb.vercel.app`, `github.com/sonz-ai/memory-bench-tidb`.
+1. **What it is** — a head-to-head benchmark of five agent-memory approaches on one TiDB cluster.
+2. **The five approaches** — raw vector, progressive summary, hierarchical, typed facts, SPO supersede. From simplest to most opinionated.
+3. **The one query** — vector + keyword + JSON + structured scoring + supersede filter, all in one `ORDER BY`.
+4. **Why TiDB** — if you tried this on Pinecone + Elastic + Postgres, you'd need three systems, app-side merge, and no clean way to handle supersede. On TiDB it's one table, one query, one UPDATE.
+5. **Honest learning** — more sophistication isn't always better. The comparison was only possible because TiDB made it cheap to switch architectures.
+6. **Try it** — `sonzai-tidb.vercel.app`, `github.com/sonz-ai/memory-bench-tidb`.
 
 ---
 

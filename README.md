@@ -162,7 +162,7 @@ Vector and full-text both exist. Great so far. But:
   default semantics. One table is still tractable — but when teams
   naturally split the vector store off onto a replica or a read-side
   cache, parity starts drifting.
-- **Running the ablation still works.** It just costs you the joint
+- **Running the comparison still works.** It just costs you the joint
   ranking, which was the whole point of the hybrid `ORDER BY`.
 
 ### On Pinecone + Elastic + Postgres (three systems)

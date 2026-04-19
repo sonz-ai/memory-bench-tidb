@@ -52,7 +52,7 @@ One index plan. One round-trip. No sidecar vector store, no full-text cluster, n
 
 Elsewhere the statement fragments into two-phase retrieval glue: fetch top-N by vector, fetch structured rows by id, re-score in app code. Two round-trips, two failure modes, two places for the comparison to drift.
 
-On TiDB it's one statement. That's why the ablation is honest — every approach runs through an identical retrieval path, not "identical-ish after we normalize three different query shapes."
+On TiDB it's one statement. That's why the comparison is honest — every approach runs through an identical retrieval path, not "identical-ish after we normalize three different query shapes."
 
 ---
 
