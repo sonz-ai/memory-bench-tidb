@@ -1,110 +1,111 @@
 # Stage script · 120 seconds
 
-Site is on screen behind you. Picker visible. Repo link in the footer. Timer starts when you begin.
+Site is on screen behind you. Picker visible. Read this out loud — it lands at about two minutes with normal pacing.
 
 ---
 
-## 0:00 – 0:20 · What memory-bench is and what we ran
+## 0:00 – 0:25 · What we did and why
 
-> "memory-bench is an ablation of five agent-memory architectures on one TiDB Cloud Serverless cluster.
+> "Hi — we built a thing called **memory-bench**. It's an **ablation study** of how AI agents should remember things.
 >
-> We evaluated against **LongMemEval** — the standard academic benchmark for long-horizon agent memory. Five hundred questions, each wrapped in a long multi-session conversation that the agent has to remember across. Four oracle slices: single-session, multi-session, temporal, and knowledge-update. We ran the balanced subset at N=10 and N=50 per slice, same Gemini 3.1 Flash-Lite on every write-side extractor and on the answerer, Gemini 3.1 Pro as the judge.
+> Quick explainer: an ablation study is where you take a system, strip it down to the basics, and then add one feature at a time to see what each feature actually buys you. It's how you find out which parts of a design are load-bearing and which parts are just complexity.
 >
-> One table. One schema. One SQL retriever. Swapping architectures is a `WHERE approach = ?` change. That's the whole comparison."
+> We did that for agent memory. We built **five** different ways an AI agent could store and recall information across long conversations, and we ran all five through the exact same test — a benchmark called LongMemEval, 500 questions about remembering things from past conversations. Same language model, same questions, same database. The only thing that changed was how the agent wrote to memory.
+>
+> Everything ran on a single TiDB cluster, and that's the part we want to talk about."
 
-*(Picker visible, at rest on `spo_supersede`.)*
-
----
-
-## 0:20 – 1:00 · The five architectures
-
-*(Click the picker left-to-right, pausing one beat on each architecture.)*
-
-> "Five write-time strategies. Each row adds exactly one move over the previous one.
->
-> **`raw_vector`** — embed every turn, store it, retrieve by cosine. Zero write-time compute. This is where everyone starts.
->
-> **`progressive_summary`** — buffer five turns, summarize them, embed the summary, retrieve over summaries. Trades specificity for compression.
->
-> **`hierarchical`** — keep the most recent twenty turns verbatim, summarize older ones in ten-turn batches, retrieve over both. A middle ground.
->
-> **`typed_facts`** — one LLM call per turn extracts four typed signals: importance zero-to-one, event-time — when the thing happened, not when we stored it — canonical entities, and atomic facts with pronouns resolved. Retrieval becomes hybrid: vector similarity plus lexical match plus importance plus recency decay plus temporal window, all fused in one `ORDER BY`.
->
-> **`spo_supersede`** — the most write-heavy row. Two focused LLM extractors run in parallel on every turn. The **Cartographer** pulls subject-predicate-object triples out of the turn — literally `(user, owns_dog, Max)` — and writes them into indexed SQL columns called `subject`, `predicate`, `object`. Not a JSON blob. Actual columns with a composite index. The **Librarian** looks at the same turn against the twelve most recent facts already in memory and tags it as *new*, *reinforces*, *updates*, or *contradicts*. If it's an update or contradiction, it names which specific prior fact gets overruled.
->
-> Then a deterministic merge runs in our writer code — not an LLM, just fifteen lines of TypeScript. Two rules. One: if the Cartographer emits a triple with the same subject and predicate as a live row — `(user, owns_dog, Max)` when `(user, owns_dog, Buddy)` already exists — we set that prior row's `superseded_at` to now. Two: if the Librarian flags *updates* or *contradicts* and its candidate supersede-content fuzzy-matches a live prior, same path. Insert and supersede happen in the same transaction. No LLM judgment on the critical path."
+*(Picker visible on screen.)*
 
 ---
 
-## 1:00 – 1:25 · The retriever
+## 0:25 – 0:55 · The five approaches, plainly
+
+*(Click the picker left-to-right.)*
+
+> "Here are the five approaches, from simplest to most sophisticated.
+>
+> **`raw_vector`** — just embed every message and store it. When you ask a question, find the most similar messages by vector similarity. Basic RAG. No pre-processing.
+>
+> **`progressive_summary`** — every five messages, summarize them into one chunk and store the summary. Retrieval looks at summaries.
+>
+> **`hierarchical`** — keep the last twenty messages as-is, summarize older ones. Retrieval looks at both.
+>
+> **`typed_facts`** — the first write-heavy one. Every message goes through an LLM that pulls out structured fields: how important is this, when did the event actually happen, who or what is mentioned, and the key atomic facts. Retrieval then ranks using all of that.
+>
+> **`spo_supersede`** — the most sophisticated. Two small LLMs look at each message in parallel. One — we call it the **Cartographer** — pulls out relationship triples like `(user, owns_dog, Max)` and writes them into real SQL columns. The other — the **Librarian** — compares the new message against what's already in memory and flags if it *contradicts* or *updates* something. If it does, a small piece of code marks the old fact as superseded. No more LLM judgment after that — just a deterministic rule: same subject and predicate, new value wins."
+
+---
+
+## 0:55 – 1:25 · Why TiDB made this possible
 
 *(Click to the SQL panel.)*
 
-> "This is the retriever. One `SELECT ... ORDER BY` for all five architectures. Vector cosine, full-text LIKE, indexed JSON entity match, structured scoring — importance, recency decay, temporal-window boost, SPO column match — and `WHERE superseded_at IS NULL` as a predicate on an indexed column.
+> "Now here's why TiDB is the whole pitch.
 >
-> That last one is the trick that makes write-time contradiction logic actually pay off. When the Cartographer supersedes `(user, owns_dog, Buddy)` at write, the old row stays in the table — it's not deleted — but `superseded_at` becomes non-null, and the retriever's indexed predicate filters it out. Contradictions collapsed at write time never resurface at read time.
+> All five architectures share **one SQL query** to retrieve from memory. One query. For all five. The only difference is a `WHERE approach = ?` clause.
 >
-> Five architectures, identical retrieval path. The `approach = ?` predicate is the only thing that changes across runs."
+> That query does a lot in one statement: vector similarity, keyword search, JSON entity matching, structured scoring like importance and recency, and a filter that says 'skip anything we already marked as superseded.' All of that in one ranked `ORDER BY`.
+>
+> If we tried this without TiDB, we would have had to use three different databases — a vector database like Pinecone, a search engine like Elastic, and Postgres for the structured data. And because no single query can rank across all three, we'd have had to write application code to fetch from each one and merge the results. Worse, when we mark something as superseded, we'd have to update all three databases at once — and they don't coordinate, so there's always a window where one is stale.
+>
+> On TiDB, it's one table and one query. Marking something superseded is a single UPDATE. The comparison between the five approaches is literally one column in the database."
 
 ---
 
-## 1:25 – 1:50 · What TiDB makes trivial — and what it doesn't
+## 1:25 – 1:45 · What we learned
 
-> "The reason this works as one query is specifically TiDB. Three things no other single engine ships in-band.
+> "Two honest takeaways.
 >
-> **One** — HNSW vectors next to full-text indices on the same row, both scorable in the same `ORDER BY`. Postgres plus pgvector can't fuse FTS and vector into one ranked query.
+> **One** — more sophistication isn't always better. The fanciest approach, `spo_supersede`, is aggressive about overwriting old facts, and sometimes the old fact is still useful — like when someone asks *what was my dog's name before Max*. We found specific cases where simpler approaches beat the complex one.
 >
-> **Two** — indexed JSON paths and composite indexes on SPO columns firing in the same plan. Pinecone doesn't do structured columns. Postgres can't do HNSW natively. Scylla doesn't do ranked queries.
->
-> **Three** — supersession as a predicate on an indexed column. On a polyglot stack, marking a fact superseded means an `UPDATE` on Postgres, a delete on Pinecone, a delete on Elastic — three distributed writes with no native two-phase-commit, with an eventual-consistency window where the stale vector still returns.
->
-> Without TiDB, this same ablation is three backends, fifteen integration points, and application-side merge code per approach. On TiDB it's a column rename."
+> **Two** — the reason we could find that out at all is because TiDB made running this comparison cheap. Swapping architectures was a `WHERE` clause change. Not a migration, not a rewrite, not a new service. That meant we could actually measure the tradeoffs instead of arguing about them in a slide deck."
 
 ---
 
-## 1:50 – 2:00 · Why bother
+## 1:45 – 2:00 · It's open — try it
 
-> "The honest finding isn't that one architecture wins. It's that running a five-way write-time ablation with an identical read path is *tractable* — because the backbone makes it tractable. Repo is linked. Schema is one table. `bun run migrate && bun run bench` reproduces every number on any cluster you point it at. Thanks."
+> "Everything is open source. You can clone the repo, point it at your own TiDB cluster, and reproduce every number on that chart in about fifteen minutes.
+>
+> The website is **sonzai-tidb.vercel.app** — you can click through the five architectures right there. The repo is **github.com/sonz-ai/memory-bench-tidb**. Same command — `bun run migrate && bun run bench` — and you've got a reproducible agent-memory ablation on your own hardware.
+>
+> One more time: **sonzai-tidb.vercel.app** for the site, **github.com/sonz-ai/memory-bench-tidb** for the code. Thanks."
 
 ---
 
-## Quick-reference beats — memorize these, everything else is connective tissue
+## Quick-reference beats — memorize these, improvise around them
 
-1. **Frame** — LongMemEval. 500 questions, four slices, N=10 and N=50. Flash-Lite writer + answerer, Pro judge.
-2. **One table, five architectures, one SQL, column rename.**
-3. **`spo_supersede` mechanics** — Cartographer extracts SPO triples into indexed columns; Librarian flags novelty vs. priors; deterministic merge in 15 lines of code marks `superseded_at` on collision.
-4. **Retriever** — one `SELECT`, eight signals fused, `superseded_at IS NULL` is an indexed predicate.
-5. **TiDB specifics** — HNSW+FTS in one `ORDER BY`, JSON+SPO composite in one plan, supersession as an indexed predicate.
-6. **Polyglot cost** — three backends, no native 2PC, app-side merge per approach.
-7. **Close** — the ablation is measurable *because* TiDB is the backbone.
+1. **What it is** — an ablation study of five agent-memory approaches on one TiDB cluster.
+2. **What ablation means** — strip to basics, add one feature at a time, measure what each feature buys.
+3. **The five approaches** — raw vector, progressive summary, hierarchical, typed facts, SPO supersede.
+4. **The one query** — vector + keyword + JSON + structured scoring + supersede filter, all in one `ORDER BY`.
+5. **Why TiDB** — if you tried this on Pinecone + Elastic + Postgres, you'd need three systems, app-side merge, and no clean way to handle supersede. On TiDB it's one table, one query, one UPDATE.
+6. **Honest learning** — more sophistication isn't always better. The ablation was only possible because TiDB made it cheap to switch architectures.
+7. **Try it** — `sonzai-tidb.vercel.app`, `github.com/sonz-ai/memory-bench-tidb`.
 
 ---
 
 ## Contingencies
 
 **If a judge asks "what is LongMemEval":**
-> "Academic benchmark from late 2024. Five hundred questions, each embedded in a multi-session conversation history — the agent has to answer from memory, not from the visible context. Four question types: single-session, multi-session, temporal, and knowledge-update. Standard benchmark in the agent-memory literature — we're testing against the same thing papers like MemGPT and LoCoMo grade against, so the comparison is apples-to-apples with published numbers. We run the balanced oracle subset at different N values to trade statistical power against demo-day latency."
+> "It's an academic benchmark for testing how well agents remember things across long conversations. Five hundred questions, organized into four types — things from the current session, things across multiple sessions, time-based questions, and cases where a fact got updated. It's the standard for this kind of work, so our numbers are comparable to published results."
 
 **If a judge asks "what does the Librarian actually output":**
-> "A list of tags. Each tag has four fields: the content being tagged, a topic string like *pets* or *career*, a novelty enum — *new*, *reinforces*, *updates*, or *contradicts* — and, when it's updates or contradicts, a quoted prior sentence it thinks is being overruled. The merge code fuzzy-matches that quote against live rows. Strong match, we supersede; weak match, we don't. We'd rather preserve a prior than kill it wrongly."
+> "For each message, it produces a few tags. Each tag has a topic, a novelty label — is this new, a repeat, an update, or a contradiction — and when it's an update or contradiction, a quote of the specific prior fact it thinks is being overruled. Our code then fuzzy-matches that quote against what's actually in the database. Strong match, we supersede. Weak match, we leave it alone. We'd rather keep an extra fact than wrongly delete one."
 
-**If a judge asks "why is the Cartographer's output not just another JSON blob":**
-> "Because `JSON_CONTAINS` has to scan the JSON column, and a composite index on `(subject, predicate)` is an O(log n) seek. `(user, owns_dog, *)` collision check is the hot path in the merge — running on every write. Making it a column with an index is what makes the supersede rule cheap enough to be deterministic."
+**If a judge asks "why are the subject, predicate, object in their own columns instead of JSON":**
+> "Because we look them up a lot. Every write checks whether a triple with the same subject and predicate already exists. If that's a JSON scan, it's slow. If it's an indexed column lookup, it's nearly free. We moved it to columns so the deterministic supersede rule could actually run fast enough to do it on every write."
 
-**If a judge asks "why only two lenses":**
-> "We started with five plus a Gemini Pro composer reconciling them — Archivist, Empath, Timekeeper, Cartographer, Librarian. On the bench the two-lens plus deterministic-merge version matched it. We removed four lenses and a Pro call per turn. Numbers didn't move. That's in the commit history."
+**If a judge asks "why only two small LLMs, not more":**
+> "We started with five LLMs plus a bigger reconciling model. On the benchmark, the two-LLM version with a simple deterministic merge matched it. We removed the other three plus the big model. The numbers didn't change. That's in the git history."
 
-**If a judge asks "doesn't two LLM calls per turn defeat the cheapness argument":**
-> "Both run in parallel — latency is `max`, not `sum`. Both on Flash-Lite. LongMemEval's median retrieval count per fact is about seven, so two write-time calls pay for themselves at around three reads per fact. `$/correct` is the number that reflects this, and it's in the runs table."
-
-**If a judge asks "why did your most-sophisticated approach not win every slice":**
-> "The merge is aggressive. SPO collision marks the old row superseded, so retrieval only sees the new value. But some LongMemEval questions grade on the user seeing both values — 'your PB moved from 22:10 to 22:30.' Supersede is soft — `superseded_at`, not delete — so the row is still there for audit. A less-aggressive threshold is a column change, not a platform change. That's the point of doing this in the schema."
+**If a judge asks "why didn't the most sophisticated approach win":**
+> "Because its supersede rule is aggressive — it marks the old fact dead when a new one comes in with the same subject and predicate. Sometimes the old fact is what the question is about. The supersede is soft, though — we don't delete, we just mark — so it's in the database if you want it. A less-aggressive threshold is a column change, not a platform change. That's one of the reasons we like running this in the schema."
 
 **If a judge asks "could you do this on Postgres":**
-> "You could bolt pgvector on, but full-text and vector don't fuse into one `ORDER BY` — you'd query two indexes and merge in application code. And `JSON_CONTAINS` next to HNSW in the same `WHERE` clause? That's TiDB specifically. The query stays one statement because the database doesn't force us to split it."
+> "Not cleanly. Postgres with pgvector can do vector search, but it can't rank vector and full-text together in one query — you'd run two queries and merge. And the JSON and structured scoring together with HNSW in one `WHERE` clause is something TiDB does natively and Postgres doesn't."
 
 **If a judge asks "why are the numbers small":**
-> "We ran at N=10 per slice for the demo, N=50 for the reference bar on the site — eight judge-flips swings a slice by a lot at N=10, less at N=50, less again at N=500. We reran the ordering and it was stable, so the trend is real. The repo reproduces at any N; `PER_SLICE=500` is the full oracle. We traded statistical power for demo-day wall clock."
+> "We ran at N=10 per slice for the demo — forty questions per approach. At that size, individual judge calls swing things around. We reran and the ordering was stable, so the trend is real. The repo supports any N; we traded statistical power for being able to finish before demo time."
 
 **If the site is down:**
-> "Repo at `github.com/sonz-ai/memory-bench-tidb`. `bun install && bun run migrate && bun run bench` reproduces the whole thing. One table, five approaches, zero framework magic. The pitch isn't that we win every slice — it's that the comparison is cheap enough to actually run."
+> "No problem — the repo has everything. `github.com/sonz-ai/memory-bench-tidb`. Three commands: `bun install`, `bun run migrate`, `bun run bench`. Reproduces the whole thing on your own cluster in about fifteen minutes."
