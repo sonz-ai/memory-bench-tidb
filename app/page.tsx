@@ -34,9 +34,10 @@ export default function Home() {
           </h1>
 
           <p className="subhead">
-            An ablation of five agent-memory write paths on one TiDB cluster.
-            Same fixtures, same retriever, same LLM — the <code>approach</code>{" "}
-            column is the only variable.
+            An ablation of five agent-memory write paths on one TiDB cluster. 40
+            questions × 5 approaches × 200 judgments — same LLM, same fixtures,
+            same retriever. The <code>approach</code> column is the only
+            variable.
           </p>
         </section>
 
@@ -319,6 +320,127 @@ export default function Home() {
                 migrate &amp;&amp; bun run bench
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ========= RESULTS (lightweight bench we ran) ========= */}
+        <section className="band">
+          <div className="sec-head">
+            <div>
+              <p className="eyebrow">§ 06 · results (lightweight bench)</p>
+              <h2 className="sec-title">
+                200 judgments. One column different each time.
+              </h2>
+            </div>
+            <div className="sec-idx">PER_SLICE=10</div>
+          </div>
+
+          <div className="results-panel">
+            <p className="results-scale">
+              <span className="bullet">●</span> <code>PER_SLICE=10</code> · 40
+              questions × 5 approaches · 200 judgments
+            </p>
+            <p className="results-model">
+              Gemini 3.1 Flash-Lite on both the agent and the judge. LongMemEval
+              oracle. A lightweight bench — not statistical proof, just a
+              reproducible ablation you can re-run in about fifteen minutes.
+            </p>
+
+            <div className="results-table-wrap">
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th>Approach</th>
+                    <th>single</th>
+                    <th>multi</th>
+                    <th>temporal</th>
+                    <th>knowledge_update</th>
+                    <th className="overall">Overall</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="name">raw_vector</td>
+                    <td>30%</td>
+                    <td>30%</td>
+                    <td>70%</td>
+                    <td>60%</td>
+                    <td className="overall">
+                      <strong>47.5%</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="name">progressive_summary</td>
+                    <td>0%</td>
+                    <td>10%</td>
+                    <td>70%</td>
+                    <td>80%</td>
+                    <td className="overall">40.0%</td>
+                  </tr>
+                  <tr>
+                    <td className="name">hierarchical</td>
+                    <td>30%</td>
+                    <td>10%</td>
+                    <td>40%</td>
+                    <td>80%</td>
+                    <td className="overall">40.0%</td>
+                  </tr>
+                  <tr>
+                    <td className="name">typed_facts</td>
+                    <td>10%</td>
+                    <td>10%</td>
+                    <td>20%</td>
+                    <td>
+                      <strong>90%</strong>
+                    </td>
+                    <td className="overall">32.5%</td>
+                  </tr>
+                  <tr>
+                    <td className="name">spo_supersede</td>
+                    <td>0%</td>
+                    <td>0%</td>
+                    <td>0%</td>
+                    <td>30%</td>
+                    <td className="overall">7.5%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="results-notable">
+              <p className="notable-head">Notable cells</p>
+              <ul>
+                <li>
+                  <code>typed_facts</code> hits{" "}
+                  <strong>90% on knowledge_update</strong> — highest of any
+                  approach on that slice. SPO-shaped questions map cleanly to
+                  entity-tagged retrieval with recency decay.
+                </li>
+                <li>
+                  <code>progressive_summary</code> is strong on{" "}
+                  <strong>temporal</strong> (70%) and{" "}
+                  <strong>knowledge_update</strong> (80%) — summaries preserve
+                  ordering cues while losing verbatim fidelity.
+                </li>
+                <li>
+                  <code>raw_vector</code> wins <strong>multi_session</strong>{" "}
+                  (30%) — questions whose answer appeared verbatim in one turn
+                  happen to map to cosine similarity.
+                </li>
+                <li>
+                  <code>spo_supersede</code> is low because the deterministic{" "}
+                  <code>(subject, predicate)</code> collision rule over-
+                  compresses when both old and new values are useful context
+                  (e.g. &ldquo;how has my PB changed?&rdquo;). Softening it into
+                  a decaying-importance policy would recover the slice.
+                </li>
+              </ul>
+            </div>
+
+            <p className="results-footer">
+              Raw outcomes in <code>results/bench-*.json</code> and the{" "}
+              <code>runs</code> table on the TiDB cluster.
+            </p>
           </div>
         </section>
 
