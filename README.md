@@ -240,6 +240,9 @@ identical.
 
 ## Results (N=40, PER_SLICE=10)
 
+Gemini 3.1 Flash-Lite on both the agent and the judge. 40 questions × 5
+approaches = 200 judgments. LongMemEval oracle.
+
 | Approach | single_session | multi_session | temporal | knowledge_update | Overall |
 |---|---|---|---|---|---|
 | `raw_vector` | 30% | 30% | 70% | 60% | **47.5%** |
@@ -248,9 +251,26 @@ identical.
 | `typed_facts` | 10% | 10% | 20% | **90%** | 32.5% |
 | `spo_supersede` | 0% | 0% | 0% | 30% | 7.5% |
 
-Full outcomes: `results/bench-*.json`. Chart: `results/chart.svg`.
-`runs` table on TiDB stores every per-approach, per-question judgment with
-token counts and latency.
+Notable cells:
+
+- **`typed_facts` hits 90% on `knowledge_update`** — highest of any
+  approach on that slice. SPO-shaped questions map cleanly to
+  SPO-indexed retrieval.
+- **`progressive_summary` is strong on `temporal` (70%) and
+  `knowledge_update` (80%)** — summaries preserve ordering cues,
+  at the cost of verbatim fidelity on single-session phrasing.
+- **`raw_vector` leads `multi_session` (30%)** — questions whose
+  counting answer was stated verbatim in one turn map cleanly to
+  cosine.
+- **`spo_supersede` drops to 30% on `knowledge_update`** — the
+  deterministic `(subject, predicate)` collision rule over-compresses
+  when both the old and new values are useful context (e.g. "how has
+  my PB changed"). Softening that into a decaying-importance policy
+  would recover the slice.
+
+Full outcomes: `results/bench-*.json`. Chart: `results/chart.svg`. The
+`runs` table on TiDB stores every per-approach, per-question judgment
+with token counts and latency — queryable with standard SQL.
 
 ---
 

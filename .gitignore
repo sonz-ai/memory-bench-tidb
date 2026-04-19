@@ -6,3 +6,6 @@ results/*.json
 results/*.md
 results/*.svg
 !results/.gitkeep
+
+.next
+next-env.d.ts
