@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+bun.lockb
+results/*.json
+results/*.md
+results/*.svg
+!results/.gitkeep

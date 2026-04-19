@@ -1,0 +1,95 @@
+{
+  "summary": {
+    "raw_vector": {
+      "single_session": {
+        "n": 10,
+        "acc": 0.3
+      },
+      "multi_session": {
+        "n": 10,
+        "acc": 0.3
+      },
+      "temporal": {
+        "n": 10,
+        "acc": 0.7
+      },
+      "knowledge_update": {
+        "n": 10,
+        "acc": 0.6
+      }
+    },
+    "progressive_summary": {
+      "single_session": {
+        "n": 10,
+        "acc": 0
+      },
+      "multi_session": {
+        "n": 10,
+        "acc": 0.1
+      },
+      "temporal": {
+        "n": 10,
+        "acc": 0.7
+      },
+      "knowledge_update": {
+        "n": 10,
+        "acc": 0.8
+      }
+    },
+    "hierarchical": {
+      "single_session": {
+        "n": 10,
+        "acc": 0.3
+      },
+      "multi_session": {
+        "n": 10,
+        "acc": 0.1
+      },
+      "temporal": {
+        "n": 10,
+        "acc": 0.4
+      },
+      "knowledge_update": {
+        "n": 10,
+        "acc": 0.8
+      }
+    },
+    "typed_facts": {
+      "single_session": {
+        "n": 10,
+        "acc": 0.1
+      },
+      "multi_session": {
+        "n": 10,
+        "acc": 0.1
+      },
+      "temporal": {
+        "n": 10,
+        "acc": 0.2
+      },
+      "knowledge_update": {
+        "n": 10,
+        "acc": 0.9
+      }
+    },
+    "spo_supersede": {
+      "single_session": {
+        "n": 10,
+        "acc": 0
+      },
+      "multi_session": {
+        "n": 10,
+        "acc": 0
+      },
+      "temporal": {
+        "n": 10,
+        "acc": 0
+      },
+      "knowledge_update": {
+        "n": 10,
+        "acc": 0.3
+      }
+    }
+  },
+  "source": "bench-2026-04-19T00-58-01-355Z.json"
+}
