@@ -34,7 +34,7 @@ export default function Home() {
           </h1>
 
           <p className="subhead">
-            An ablation of five agent-memory write paths on one TiDB cluster. 40
+            Five agent-memory write paths compared on one TiDB cluster. 40
             questions × 5 approaches × 200 judgments — same LLM, same fixtures,
             same retriever. The <code>approach</code> column is the only
             variable.
@@ -150,7 +150,7 @@ export default function Home() {
             <span className="em">vector, full-text, JSON, and structured</span>{" "}
             predicates in one <code>ORDER BY</code>. One statement, one plan,
             one transaction, one snapshot. On any other substrate, that fusion
-            fragments — and the ablation stops being controlled.
+            fragments — and the comparison stops being controlled.
           </p>
 
           <div className="substrates-wrap">
@@ -267,16 +267,15 @@ export default function Home() {
           <div className="polyglot-close">
             <p>
               <span className="em">
-                For an ablation, the sync tax is fatal.
+                For a controlled comparison, the sync tax is fatal.
               </span>{" "}
-              A controlled comparison requires every architecture to read
-              through an identical retrieval path over the same snapshot. When
-              retrieval is two-phase over async-replicated stores, &ldquo;the
-              same&rdquo; is fiction — <code>raw_vector</code> and{" "}
-              <code>spo_supersede</code> can see data that differs by whatever
-              the replica lag happens to be at that moment. A gap between them
-              stops being attributable to the write-time move. It could just be
-              infra drift.
+              A fair comparison requires every architecture to read through an
+              identical retrieval path over the same snapshot. When retrieval is
+              two-phase over async-replicated stores, &ldquo;the same&rdquo; is
+              fiction — <code>raw_vector</code> and <code>spo_supersede</code>{" "}
+              can see data that differs by whatever the replica lag happens to
+              be at that moment. A gap between them stops being attributable to
+              the write-time move. It could just be infra drift.
             </p>
             <p>
               TiDB&rsquo;s unique property for this study isn&rsquo;t
@@ -343,7 +342,7 @@ export default function Home() {
             <p className="results-model">
               Gemini 3.1 Flash-Lite on both the agent and the judge. LongMemEval
               oracle. A lightweight bench — not statistical proof, just a
-              reproducible ablation you can re-run in about fifteen minutes.
+              reproducible comparison you can re-run in about fifteen minutes.
             </p>
 
             <div className="results-table-wrap">
