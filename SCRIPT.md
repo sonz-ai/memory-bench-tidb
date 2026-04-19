@@ -18,21 +18,21 @@ Site is on screen behind you. Picker visible. Read this out loud — it lands at
 
 ---
 
-## 0:25 – 0:55 · The five approaches, plainly
+## 0:25 – 0:55 · The five approaches, from dumb to opinionated
 
 *(Click the picker left-to-right.)*
 
-> "Here are the five approaches, from simplest to most sophisticated.
+> "Here are the five — each one does more at write time than the one before it.
 >
-> **`raw_vector`** — just embed every message and store it. When you ask a question, find the most similar messages by vector similarity. Basic RAG. No pre-processing.
+> **`raw_vector`** is a shoebox of messages. Embed every turn, sort by *vibe* when you need to remember something. This is basic RAG — the control group. Everything else has to beat this.
 >
-> **`progressive_summary`** — every five messages, summarize them into one chunk and store the summary. Retrieval looks at summaries.
+> **`progressive_summary`** swaps every five messages for one summary. You get the arc of the conversation, you lose the specifics. Good for themes. Bad for "what were the exact words."
 >
-> **`hierarchical`** — keep the last twenty messages as-is, summarize older ones. Retrieval looks at both.
+> **`hierarchical`** is closer to how your own memory works — this morning in detail, last year as a rough story. Recent twenty messages verbatim; older ones summarized. The database has a short-term layer and a long-term layer.
 >
-> **`typed_facts`** — the first write-heavy one. Every message goes through an LLM that pulls out structured fields: how important is this, when did the event actually happen, who or what is mentioned, and the key atomic facts. Retrieval then ranks using all of that.
+> **`typed_facts`** is the first one that does homework at write time. An LLM reads every message and fills out a form: *how important is this, when did it actually happen, who's in it, what are the atomic claims?* Those become real columns. Retrieval then doesn't just sort by vibe — it ranks by *importance × recency × who-it's-about*.
 >
-> **`spo_supersede`** — the most sophisticated. Two small LLMs look at each message in parallel. One — we call it the **Cartographer** — pulls out relationship triples like `(user, owns_dog, Max)` and writes them into real SQL columns. The other — the **Librarian** — compares the new message against what's already in memory and flags if it *contradicts* or *updates* something. If it does, a small piece of code marks the old fact as superseded. No more LLM judgment after that — just a deterministic rule: same subject and predicate, new value wins."
+> **`spo_supersede`** goes all the way. Two specialists work on every message, in parallel. The **Cartographer** maps the world into relationship triples — `(user, owns_dog, Max)` — and writes them into their own indexed SQL columns. The **Librarian** reads the same message against the last dozen things we already knew and flags: *is this new, a repeat, an update, or a contradiction?* If it contradicts — say, last week you said Buddy, this week you say Max — a tiny piece of code retires the old row. No more LLM judgment after that point. Just a rule: same subject, same predicate, new value wins. The memory is self-consistent by the time anyone asks it a question."
 
 ---
 
