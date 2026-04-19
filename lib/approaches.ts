@@ -54,7 +54,7 @@ export const APPROACHES: Approach[] = [
     tag: "control",
     flow: {
       prose:
-        "Embed every turn, insert it. No LLM at write; no reasoning at write. The floor every other approach has to clear.",
+        "Embed every message, insert it. No LLM at write, no reasoning. Basic RAG — the floor every other approach has to clear.",
       nodes: [
         { label: "turn" },
         { label: "embed" },
@@ -79,7 +79,7 @@ export const APPROACHES: Approach[] = [
     tidb: ["vector"],
     isolates: {
       delta: "adds · nothing (control)",
-      text: "The control. No write-time reasoning. Establishes what a pure cosine retriever scores — every other approach's added write-time compute is paid against this floor.",
+      text: "The control. Zero LLM at write. Pure cosine retrieval at read. Every other approach's write-time compute is paid against this floor.",
     },
   },
   {
@@ -87,7 +87,7 @@ export const APPROACHES: Approach[] = [
     tag: "compression",
     flow: {
       prose:
-        "Every 5 turns, compress the window into a summary row. Retrieval is cosine over the summary rows. One LLM call per window.",
+        "Every 5 messages, one LLM call compresses the window into a summary row. Retrieval runs cosine over summaries — fewer, denser rows than raw_vector.",
       nodes: [
         { label: "turn" },
         { label: "buffer · 5" },
@@ -119,7 +119,7 @@ export const APPROACHES: Approach[] = [
     tidb: ["vector", "structured"],
     isolates: {
       delta: "adds · write-time compression",
-      text: "Adds compression on top of raw_vector. Summaries replace raw turns in the index — isolates whether the compression cost is repaid by retrieval over fewer, denser rows.",
+      text: "Adds compression on top of raw_vector. Summaries replace raw messages in the index. Tests whether denser summary rows retrieve better than a larger pool of raw turns.",
     },
   },
   {
@@ -127,7 +127,7 @@ export const APPROACHES: Approach[] = [
     tag: "multi-level",
     flow: {
       prose:
-        "Keep the most recent 20 turns verbatim (level=0). Older turns are summarized in 10-turn batches (level=2). Retrieval runs cosine over both levels.",
+        "Keep the last 20 messages verbatim (level=0). Older messages get compressed in 10-turn batches (level=2). Retrieval looks at both layers.",
       nodes: [
         { label: "turn" },
         {
@@ -163,7 +163,7 @@ export const APPROACHES: Approach[] = [
     tidb: ["vector", "structured"],
     isolates: {
       delta: "adds · layering (recent verbatim + older summarized)",
-      text: "Adds layering on top of progressive_summary. Recent context stays verbatim; only old context is compressed. Isolates whether preserving recency beats uniform compression.",
+      text: "Adds layering on top of progressive_summary. Recent context stays verbatim; only old context is compressed. Tests whether preserving recent wording beats uniform compression.",
     },
   },
   {
@@ -171,7 +171,7 @@ export const APPROACHES: Approach[] = [
     tag: "one call · typed",
     flow: {
       prose:
-        "One LLM call per turn extracts importance (0..1), event_time, entities, and atomic facts. The retriever fuses vector, lexical (LIKE), importance, recency decay, temporal window, and JSON entity match in one ORDER BY.",
+        "The first write-heavy approach. One LLM call per message extracts structured fields: how important is this (0..1), when the event actually happened, who or what is mentioned, and the atomic facts stated. The retriever then fuses vector, lexical match, importance, recency, temporal window, and JSON entity — all in one ORDER BY.",
       nodes: [
         { label: "turn" },
         { label: "LLM extract" },
@@ -228,8 +228,8 @@ export const APPROACHES: Approach[] = [
     ],
     tidb: ["vector", "fts", "structured", "json"],
     isolates: {
-      delta: "adds · LLM-scored importance + temporal anchoring",
-      text: "Adds LLM-scored importance, event_time, and JSON entities on top of hierarchical. Isolates whether write-time scoring + temporal/entity signals in a fused ORDER BY beat cosine-only retrieval.",
+      delta: "adds · LLM-scored fields + temporal anchoring",
+      text: "The first write-heavy approach. Adds LLM-scored importance, event_time, and JSON entities on top of hierarchical. Tests whether write-time scoring and temporal/entity signals fused in one ORDER BY beat cosine-only retrieval.",
     },
   },
   {
@@ -237,7 +237,7 @@ export const APPROACHES: Approach[] = [
     tag: "two lenses · supersede",
     flow: {
       prose:
-        "Two parallel LLM calls per turn. Cartographer extracts SPO triples into indexed (subject, predicate, object) columns. Librarian flags novelty, contradicts, updates. Deterministic merge in code: (subject, predicate) collision OR librarian 'updates/contradicts' → UPDATE prior row SET superseded_at = NOW().",
+        "Two small LLMs run in parallel on each message. The Cartographer pulls out relationship triples like (user, owns_dog, Max) and writes them into indexed subject/predicate/object columns. The Librarian compares the message against what's already in memory and flags updates or contradictions. Then a deterministic rule takes over: same (subject, predicate) → UPDATE the old row SET superseded_at = NOW(). No LLM on the reconcile path.",
       nodes: [
         { label: "turn" },
         {
@@ -315,7 +315,7 @@ export const APPROACHES: Approach[] = [
     tidb: ["vector", "fts", "structured", "json", "supersede"],
     isolates: {
       delta: "adds · SPO extraction + deterministic supersede",
-      text: "Adds SPO extraction + deterministic supersede on top of typed_facts. Isolates whether write-time contradiction resolution earns its cost — every contradiction collapsed here is an LLM reconciliation avoided at read.",
+      text: "Adds SPO extraction and deterministic supersede on top of typed_facts. Two parallel LLMs, then code — not a third LLM — decides what retires. Tests whether write-time contradiction resolution earns its cost: every contradiction collapsed here is an LLM reconciliation avoided at read.",
     },
   },
 ];

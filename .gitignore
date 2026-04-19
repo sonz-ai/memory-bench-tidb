@@ -9,3 +9,4 @@ results/*.svg
 
 .next
 next-env.d.ts
+.vercel/

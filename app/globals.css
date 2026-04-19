@@ -391,10 +391,16 @@ section.band:last-of-type {
   display: grid;
   grid-template-rows: auto auto auto auto;
   min-height: 640px;
+  /* grid-child default is min-width: auto — unset so 1fr column
+     respects its allocation and long prose wraps inside */
+  min-width: 0;
+  overflow: hidden;
 }
 .pane {
   padding: 28px 30px;
   border-bottom: 1px solid var(--hair-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .pane:last-child {
   border-bottom: 0;
@@ -412,6 +418,8 @@ section.band:last-of-type {
   font-size: 14.5px;
   line-height: 1.6;
   color: var(--text-2);
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 .pane .body code {
   font-family: var(--font-mono);

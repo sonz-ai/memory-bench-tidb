@@ -34,8 +34,9 @@ export default function Home() {
           </h1>
 
           <p className="subhead">
-            Switch the <code>approach</code> column. Run the retriever.
-            That&rsquo;s the comparison.
+            An ablation of five agent-memory write paths on one TiDB cluster.
+            Same fixtures, same retriever, same LLM — the <code>approach</code>{" "}
+            column is the only variable.
           </p>
         </section>
 
